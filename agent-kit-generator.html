@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agent Kit Generator — akash.tech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9f9f7; color: #1a1a1a; line-height: 1.7; }
+    nav { padding: 24px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e8e8e4; }
+    nav a { text-decoration: none; color: #1a1a1a; font-size: 15px; }
+    nav .logo { font-weight: 600; }
+    nav .back { color: #888; font-size: 14px; }
+    nav .back:hover { color: #1a1a1a; }
+    .hero { max-width: 720px; margin: 80px auto 0; padding: 0 40px; }
+    .tag { display: inline-block; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #888; margin-bottom: 20px; }
+    h1 { font-size: 42px; font-weight: 700; letter-spacing: -1px; line-height: 1.15; margin-bottom: 20px; }
+    .tagline { font-size: 20px; color: #555; margin-bottom: 40px; }
+    .cta-row { display: flex; gap: 16px; margin-bottom: 80px; flex-wrap: wrap; }
+    .btn-primary { display: inline-block; background: #1a1a1a; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 500; }
+    .btn-secondary { display: inline-block; background: transparent; color: #1a1a1a; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 500; border: 1.5px solid #ddd; }
+    .divider { max-width: 720px; margin: 0 auto; padding: 0 40px; border-top: 1px solid #e8e8e4; }
+    .section { max-width: 720px; margin: 0 auto; padding: 60px 40px; }
+    .section h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #888; margin-bottom: 20px; }
+    .section p { font-size: 17px; color: #333; margin-bottom: 20px; }
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .feature { background: #fff; border: 1px solid #e8e8e4; border-radius: 12px; padding: 24px; }
+    .feature .icon { font-size: 22px; margin-bottom: 12px; }
+    .feature h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .feature p { font-size: 14px; color: #666; margin: 0; }
+    .stack { display: flex; gap: 10px; flex-wrap: wrap; }
+    .pill { background: #fff; border: 1px solid #e8e8e4; border-radius: 100px; padding: 6px 14px; font-size: 13px; color: #555; }
+    footer { border-top: 1px solid #e8e8e4; padding: 40px; text-align: center; font-size: 14px; color: #aaa; }
+    @media (max-width: 600px) { h1 { font-size: 30px; } .features { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">akash.tech</a>
+    <a href="/" class="back">← All projects</a>
+  </nav>
+  <div class="hero">
+    <span class="tag">AI Tooling</span>
+    <h1>Agent Kit Generator</h1>
+    <p class="tagline">Build production-ready AI agent system prompts in minutes — no engineering required.</p>
+    <div class="cta-row">
+      <a href="#" class="btn-primary">Try the demo →</a>
+      <a href="#" class="btn-secondary">View on GitHub</a>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <h2>Why I built this</h2>
+    <p>One of the most common blockers when deploying AI agents isn't the model — it's the system prompt. A bad system prompt leads to unpredictable behavior, scope creep, and agents that hallucinate their way through tasks.</p>
+    <p>I wanted a simple, structured way to think through what an agent actually needs: its role, goals, tools, constraints, and output format. The Agent Kit Generator walks you through each dimension and produces a clean, copy-paste-ready system prompt you can drop into any LLM API call.</p>
+    <p>This started as something I built for my own AI product work — and turned into a tool I keep coming back to every time I'm scoping a new agent.</p>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <h2>What it does</h2>
+    <div class="features">
+      <div class="feature"><div class="icon">🧭</div><h3>Guided configuration</h3><p>Step-by-step form covering every key dimension of agent behavior.</p></div>
+      <div class="feature"><div class="icon">⚡</div><h3>Instant system prompt</h3><p>Generates a structured, production-ready prompt you can deploy immediately.</p></div>
+      <div class="feature"><div class="icon">🔧</div><h3>Tool & constraint mapping</h3><p>Define what the agent can and can't do — critical for safe, predictable behavior.</p></div>
+      <div class="feature"><div class="icon">📋</div><h3>Output format control</h3><p>Specify exactly how the agent should format its responses for your use case.</p></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <h2>Built with</h2>
+    <div class="stack">
+      <span class="pill">React</span>
+      <span class="pill">Tailwind CSS</span>
+      <span class="pill">Vercel</span>
+    </div>
+  </div>
+  <footer><p>Built by <a href="/">Akash</a> · akash.tech</p></footer>
+</body>
+</html>a
