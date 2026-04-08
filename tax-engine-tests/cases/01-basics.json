@@ -1,0 +1,99 @@
+{
+  "category": "Basics",
+  "description": "Straight-line returns that must work before anything else matters. Bracket arithmetic, standard deduction, filing-status dispatch.",
+  "cases": [
+    {
+      "id": "basics-single-zero",
+      "name": "Single, zero income",
+      "kind": "analytical",
+      "citation": "IRC §63(c); Rev. Proc. 2024-40 §3.16 (Std ded); OBBBA §70102 ($750 bump)",
+      "input": { "filing_status": "Single", "taxpayer_age": "35" },
+      "expect": {
+        "lines.L1": 0,
+        "lines.L9": 0,
+        "lines.L11": 0,
+        "lines.L12": 15750,
+        "lines.L15": 0,
+        "lines.L16": 0,
+        "lines.L24": 0,
+        "lines.L34": 0,
+        "lines.L37": 0,
+        "d.dedUsed": "Standard",
+        "d.stdDed": 15750
+      }
+    },
+    {
+      "id": "basics-mfj-zero",
+      "name": "MFJ, zero income",
+      "kind": "analytical",
+      "citation": "Rev. Proc. 2024-40 §3.16; OBBBA §70102 ($1,500 bump)",
+      "input": { "filing_status": "Married Filing Jointly", "taxpayer_age": "35", "spouse_age": "33" },
+      "expect": { "lines.L12": 31500, "lines.L24": 0, "d.stdDed": 31500 }
+    },
+    {
+      "id": "basics-hoh-zero",
+      "name": "Head of Household, zero income",
+      "kind": "analytical",
+      "citation": "Rev. Proc. 2024-40 §3.16",
+      "input": { "filing_status": "Head of Household", "taxpayer_age": "35" },
+      "expect": { "lines.L12": 23625, "lines.L24": 0 }
+    },
+    {
+      "id": "basics-mfs-zero",
+      "name": "Married Filing Separately, zero income",
+      "kind": "analytical",
+      "citation": "Rev. Proc. 2024-40 §3.16",
+      "input": { "filing_status": "Married Filing Separately", "taxpayer_age": "35" },
+      "expect": { "lines.L12": 15750, "lines.L24": 0 }
+    },
+    {
+      "id": "basics-single-30k-10pct-bracket",
+      "name": "Single, $30K wages — tax straddles 10% and 12% brackets",
+      "kind": "analytical",
+      "citation": "IRC §1; Rev. Proc. 2024-40 §3.01(1) (TY2025 brackets)",
+      "rationale": "Taxable = 30000 - 15750 = 14250. Tax = 10% × 11925 + 12% × (14250-11925) = 1192.5 + 279 = 1471.5 → 1472.",
+      "input": { "filing_status": "Single", "taxpayer_age": "35", "w2s": [{ "wages": "30000", "fed": "0" }] },
+      "expect": {
+        "lines.L11": 30000,
+        "lines.L12": 15750,
+        "lines.L15": 14250,
+        "lines.L16": 1472,
+        "lines.L24": 1472,
+        "lines.L37": 1472,
+        "lines.margRate": 0.12
+      }
+    },
+    {
+      "id": "basics-mfj-100k-taxable-22pct-bracket",
+      "name": "MFJ, $131.5K wages (taxable $100K) — crosses into 22% bracket",
+      "kind": "analytical",
+      "citation": "Rev. Proc. 2024-40 §3.01(2)",
+      "rationale": "L11=131500, L12=31500, L15=100000. Tax = 10%×23850 + 12%×(96950-23850) + 22%×(100000-96950) = 2385 + 8772 + 671 = 11828 exact.",
+      "input": { "filing_status": "Married Filing Jointly", "taxpayer_age": "40", "spouse_age": "40", "w2s": [{ "wages": "131500", "fed": "0" }] },
+      "expect": { "lines.L15": 100000, "lines.L16": 11828, "lines.L24": 11828, "lines.margRate": 0.22 }
+    },
+    {
+      "id": "basics-hoh-80k",
+      "name": "HOH, $80K wages",
+      "kind": "analytical",
+      "citation": "Rev. Proc. 2024-40 §3.01(4)",
+      "rationale": "L11=80000, L12=23625, L15=56375. Tax = 10%×17000 + 12%×(56375-17000) = 1700 + 4725 = 6425.",
+      "input": { "filing_status": "Head of Household", "taxpayer_age": "35", "w2s": [{ "wages": "80000", "fed": "0" }] },
+      "expect": { "lines.L15": 56375, "lines.L16": 6425, "lines.L24": 6425 }
+    },
+    {
+      "id": "basics-std-deduction-exceeds-income",
+      "name": "Wages below standard deduction → no tax",
+      "kind": "analytical",
+      "citation": "IRC §63(b) (taxable income floored at zero)",
+      "input": { "filing_status": "Single", "taxpayer_age": "35", "w2s": [{ "wages": "12000", "fed": "100" }] },
+      "expect": {
+        "lines.L11": 12000,
+        "lines.L15": 0,
+        "lines.L16": 0,
+        "lines.L24": 0,
+        "lines.L34": 100
+      }
+    }
+  ]
+}

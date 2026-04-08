@@ -1,0 +1,96 @@
+{
+  "category": "Capital Gains, Qualified Dividends, NIIT",
+  "description": "Preferential rate stacking on top of ordinary income (0/15/20), qualified dividends, and Net Investment Income Tax.",
+  "cases": [
+    {
+      "id": "ltcg-all-zero-rate",
+      "name": "LTCG fully within 0% bracket",
+      "kind": "analytical",
+      "citation": "IRC §1(h); Rev. Proc. 2024-40 §3.03 (2025 0% cap $48,350 Single)",
+      "rationale": "L11 = 60000, L12 = 15750, L15 = 44250. pI = 20000 LTCG. Ordinary piece = 24250 → tax = 10%×11925 + 12%×12325 = 2672. 0% bracket cap $48,350. Since 24250 + 20000 = 44250 ≤ 48350, all $20K LTCG at 0%. pref tax = 0.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "w2s": [{ "wages": "40000", "fed": "0" }],
+        "lt_gains": "20000"
+      },
+      "expect": {
+        "d.ordTax": 2672,
+        "d.prefTax": 0,
+        "lines.L16": 2672
+      }
+    },
+    {
+      "id": "ltcg-partial-15pct",
+      "name": "LTCG partly in 0%, partly in 15%",
+      "kind": "analytical",
+      "citation": "IRC §1(h)",
+      "rationale": "L11=80000, L12=15750, L15=64250, pI=20000. Ordinary piece 44250. ordTax = 10%×11925 + 12%×(44250−11925) = 1192.5 + 3879 = 5072. LTCG stacking: 0% up to 48350, so first (48350−44250)=4100 of LTCG at 0%; remaining 15900 at 15% = 2385. L16 = 5072 + 2385 = 7457.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "w2s": [{ "wages": "60000", "fed": "0" }],
+        "lt_gains": "20000"
+      },
+      "expect": {
+        "d.ordTax": 5072,
+        "d.prefTax": 2385,
+        "lines.L16": 7457
+      }
+    },
+    {
+      "id": "qualdivs-0pct",
+      "name": "Qualified dividends stack with LTCG in 0% bracket",
+      "kind": "analytical",
+      "citation": "IRC §1(h)(11)",
+      "rationale": "Engine: L3b tracks total ordinary divs; qualified_divs is a separate pI input. L9 = 30000 + 5000 (ord divs) + 5000 (LTCG) = 40000. L11=40000, L12=15750, L15=24250. pI = 5000 qualified + 5000 LTCG = 10000. Ordinary piece = 14250 → ordTax = 10%×11925 + 12%×2325 = 1472. LTCG stack: 14250 + 10000 = 24250 ≤ 48350 (0% cap), so prefTax = 0. L16 = 1472.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "w2s": [{ "wages": "30000", "fed": "0" }],
+        "qualified_divs": "5000", "lt_gains": "5000", "ordinary_divs": "5000"
+      },
+      "expect": {
+        "lines.L15": 24250,
+        "d.ordTax": 1472,
+        "d.prefTax": 0,
+        "lines.L16": 1472
+      }
+    },
+    {
+      "id": "niit-basic",
+      "name": "NIIT on investment income above threshold",
+      "kind": "analytical",
+      "citation": "IRC §1411 (3.8% on lesser of NII or MAGI over threshold)",
+      "rationale": "MFJ, L11=330000 > 250000 thr. NII = 10000 int + 5000 divs + 15000 gains = 30000. min(30000, 330000-250000=80000) = 30000. niit = round(30000 × 0.038) = 1140.",
+      "input": {
+        "filing_status": "Married Filing Jointly", "taxpayer_age": "45", "spouse_age": "43",
+        "w2s": [{ "wages": "300000", "fed": "0" }],
+        "interest_amt": "10000", "ordinary_divs": "5000", "lt_gains": "15000"
+      },
+      "expect": { "d.niit": 1140 }
+    },
+    {
+      "id": "niit-below-threshold",
+      "name": "NIIT suppressed below threshold",
+      "kind": "analytical",
+      "citation": "IRC §1411(b)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "w2s": [{ "wages": "150000", "fed": "0" }],
+        "interest_amt": "10000"
+      },
+      "expect": { "d.niit": null }
+    },
+    {
+      "id": "niit-magi-over-nii-limit",
+      "name": "NIIT — NII smaller than MAGI excess, so NII is the limit",
+      "kind": "analytical",
+      "citation": "IRC §1411(a)(1)",
+      "rationale": "Single, wages 210000, interest 5000. L11=215000. MAGI−200K = 15000. NII = 5000. 3.8% × min(5000, 15000) = 3.8% × 5000 = 190.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "w2s": [{ "wages": "210000", "fed": "0" }],
+        "interest_amt": "5000"
+      },
+      "expect": { "d.niit": 190 }
+    }
+  ]
+}

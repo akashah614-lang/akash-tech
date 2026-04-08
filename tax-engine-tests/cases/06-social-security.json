@@ -1,0 +1,80 @@
+{
+  "category": "Social Security Benefit Taxation",
+  "description": "IRC §86 / Publication 915 'Worksheet 1' — the two-tier SS taxation formula. The engine's current formula diverges from the Pub 915 worksheet in the second tier; these cases pin the expected behavior to the IRS worksheet.",
+  "cases": [
+    {
+      "id": "ss-below-threshold-mfj",
+      "name": "MFJ, provisional income below $32K → 0% taxable",
+      "kind": "analytical",
+      "citation": "IRC §86(c)(1)(B) (first-tier base $32K MFJ)",
+      "rationale": "Provisional = 10000 + 10000 = 20000 < 32000. No taxable SS.",
+      "input": {
+        "filing_status": "Married Filing Jointly", "taxpayer_age": "66", "spouse_age": "66",
+        "w2s": [{ "wages": "10000", "fed": "0" }],
+        "ss_amount": "20000"
+      },
+      "expect": { "lines.L6b": 0 }
+    },
+    {
+      "id": "ss-tier1-single",
+      "name": "Single, provisional income in first tier → up to 50% taxable",
+      "kind": "analytical",
+      "citation": "IRC §86(a)(1); Pub 915 Worksheet 1, lines 1-17",
+      "rationale": "SS 10000, wages 25000, pv = 30000. Tier 1 only (pv < $34K). Pub 915 worksheet lines (11)=min(5000,9000)=5000, (12)=½×5000=2500, (13)=min(5000,2500)=2500, (14)=0, (15)=2500, (16)=8500, (17)=min(15,16)=2500. Engine's formula `min(SS/2, (pv−tier1)×0.5)` agrees in this tier.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "66",
+        "w2s": [{ "wages": "25000", "fed": "0" }],
+        "ss_amount": "10000"
+      },
+      "expect": { "lines.L6b": 2500 }
+    },
+    {
+      "id": "ss-tier2-single-bug",
+      "name": "Single, provisional income in second tier",
+      "kind": "known-bug",
+      "citation": "IRC §86(a)(2), (c)(1)(C); Pub 915 Worksheet 1",
+      "rationale": "SS $10K, wages $30K, pv = 35000. Pub 915: (1) ss=10000, (2) half=5000, (3) other=30000, (4) sum=35000, (7) tier1=25000, (8)=10000, (9)=9000, (10)=1000, (11)=min(8,9)=9000, (12)=half=4500, (13)=min(2,12)=4500, (14)=0.85×10=850, (15)=5350, (16)=0.85×ss=8500, (17)=min(15,16)=5350. Engine returns 8500 because its tier-2 formula uses `ssA/2 + (pv − tier1_base) × 0.85` instead of Pub 915's `min(SS/2, ½×9K) + (pv − tier2_threshold) × 0.85`.",
+      "hints": [
+        "engine.mjs: the SS block around `const pv = ...` and `pv > th + 9000 ?`",
+        "the ternary writes `ssA/2 + (pv - th) * .85` — both terms are wrong. It should use `min(ssA/2, 0.5 * 9000)` plus `(pv - (th + 9000)) * 0.85`",
+        "the constant `9000` is also filing-status-dependent: it's $9K for Single/HOH but $12K for MFJ"
+      ],
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "66",
+        "w2s": [{ "wages": "30000", "fed": "0" }],
+        "ss_amount": "10000"
+      },
+      "expect": { "lines.L6b": 5350 }
+    },
+    {
+      "id": "ss-tier2-mfj-bug",
+      "name": "MFJ, second tier — second base is $44K not $41K",
+      "kind": "known-bug",
+      "citation": "IRC §86(c)(2)(B) ($12K MFJ second bracket); Pub 915 Worksheet 1",
+      "rationale": "SS $30K, wages $40K, pv = 55000. Pub 915: (8)=23000, (9)=12000, (10)=11000, (11)=min(8,9)=12000, (12)=6000, (13)=min(2,12)=6000, (14)=0.85×11000=9350, (15)=15350, (16)=0.85×30000=25500, (17)=min(15,16)=15350. Engine uses `th + 9000` = 41000 as the second tier threshold for MFJ (should be 44000 = 32000 + 12000), AND the same flawed formula as ss-tier2-single-bug.",
+      "hints": [
+        "the constant `9000` in `pv > th + 9000` is for Single; MFJ is $12,000 per §86(c)(2)(B)",
+        "combined with the broken tier-2 formula, MFJ SS returns are substantially over-taxed"
+      ],
+      "input": {
+        "filing_status": "Married Filing Jointly", "taxpayer_age": "63", "spouse_age": "62",
+        "w2s": [{ "wages": "40000", "fed": "0" }],
+        "ss_amount": "30000"
+      },
+      "expect": { "lines.L6b": 15350, "lines.L9": 55350, "lines.L24": 2385 }
+    },
+    {
+      "id": "ss-max-85-cap",
+      "name": "High income SS — caps at 85% of benefits",
+      "kind": "analytical",
+      "citation": "IRC §86(a)(2) (85% ceiling)",
+      "rationale": "pv way above both thresholds → 0.85 × 20000 = 17000 cap.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "68",
+        "w2s": [{ "wages": "150000", "fed": "0" }],
+        "ss_amount": "20000"
+      },
+      "expect": { "lines.L6b": 17000 }
+    }
+  ]
+}

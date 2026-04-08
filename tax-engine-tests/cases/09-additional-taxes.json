@@ -1,0 +1,87 @@
+{
+  "category": "Additional Taxes & Payments",
+  "description": "Additional Medicare tax, excess Social Security withholding credit (multi-employer vs single-employer), and the over-withholding W-4 nudge.",
+  "cases": [
+    {
+      "id": "addl-medicare-single",
+      "name": "Additional Medicare Tax — Single $250K wages",
+      "kind": "analytical",
+      "citation": "IRC §3101(b)(2); §1401(b)(2)",
+      "rationale": "Wages 250000, Single thr 200000. addlMed = round((250000 − 200000) × 0.009) = 450.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "w2s": [{ "wages": "250000", "fed": "0" }]
+      },
+      "expect": { "d.addlMed": 450 }
+    },
+    {
+      "id": "addl-medicare-mfj-below-thr",
+      "name": "Additional Medicare Tax — MFJ under $250K combined",
+      "kind": "analytical",
+      "citation": "IRC §3101(b)(2)",
+      "input": {
+        "filing_status": "Married Filing Jointly", "taxpayer_age": "40", "spouse_age": "38",
+        "w2s": [{ "wages": "240000", "fed": "0" }]
+      },
+      "expect": { "d.addlMed": null }
+    },
+    {
+      "id": "exss-multi-employer",
+      "name": "Excess SS withholding — multi-employer (refundable via Sched 3)",
+      "kind": "known-bug",
+      "citation": "IRC §31(b); Sch 3 Line 11",
+      "rationale": "Two W-2s, each with $7,440 SS tax on $120K wages. Combined SS withholding = $14,880. TY2025 maximum SS tax = 176100 × 0.062 = 10918.20 → $10,918. Excess = 14880 − 10918 = $3,962, claimable on Sched 3 Line 11. Engine checks each W-2 in isolation, so it finds no excess and misses the credit.",
+      "hints": [
+        "engine.mjs: the `exSS` reducer checks each W-2 individually (`ss - round(min(ssw, ssBase) * 0.062)`)",
+        "the excess-SS credit is only valid when the taxpayer had multiple employers — it must sum withholding across W-2s and compare to the annual SS tax cap",
+        "fix sketch: `const totalSst = w2s.reduce((s,w) => s + p(w.sst), 0); const cap = Math.round(TY.ssBase * 0.062); const exSS = w2s.length > 1 ? Math.max(0, totalSst - cap) : 0;`"
+      ],
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35",
+        "w2s": [
+          { "wages": "120000", "fed": "0", "ssw": "120000", "sst": "7440" },
+          { "wages": "120000", "fed": "0", "ssw": "120000", "sst": "7440" }
+        ]
+      },
+      "expect": { "d.exSS": 3962 }
+    },
+    {
+      "id": "exss-single-employer-spurious",
+      "name": "Excess SS withholding — single employer does NOT qualify",
+      "kind": "known-bug",
+      "citation": "IRS Pub 505 & Form 843 (single-employer over-withholding must be recovered from the employer, not via 1040)",
+      "rationale": "One employer withheld $7,000 SS tax on $100K wages (should be $6,200). This is the employer's error; the taxpayer can't claim it on 1040. Engine still credits $800.",
+      "hints": [
+        "same fix as exss-multi-employer resolves this one: gate the credit on `w2s.length > 1`"
+      ],
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35",
+        "w2s": [{ "wages": "100000", "fed": "0", "ssw": "100000", "sst": "7000" }]
+      },
+      "expect": { "d.exSS": null }
+    },
+    {
+      "id": "withholding-nudge-fires",
+      "name": "Over-withholding note fires when refund > $2,000",
+      "kind": "analytical",
+      "citation": "Product / UX requirement (W-4 nudge)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35",
+        "w2s": [{ "wages": "60000", "fed": "12000" }]
+      },
+      "expect": { "lines.L34": 6928 },
+      "notesInclude": ["You're over-withheld"]
+    },
+    {
+      "id": "withholding-nudge-suppressed-small",
+      "name": "Over-withholding note suppressed when refund ≤ $2,000",
+      "kind": "analytical",
+      "citation": "Product / UX requirement",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35",
+        "w2s": [{ "wages": "60000", "fed": "6000" }]
+      },
+      "notesExclude": ["over-withheld"]
+    }
+  ]
+}

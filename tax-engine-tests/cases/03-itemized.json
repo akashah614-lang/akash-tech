@@ -1,0 +1,137 @@
+{
+  "category": "Itemized Deductions, SALT, Medical",
+  "description": "Schedule A mechanics: the 7.5% AGI medical floor, the OBBBA $40K SALT cap and its 30% phase-out above $500K MAGI, itemize-vs-standard comparison logic, and manual override.",
+  "cases": [
+    {
+      "id": "item-salt-basic",
+      "name": "Single, $100K wages — SALT under cap, itemizes with mortgage",
+      "kind": "analytical",
+      "citation": "IRC §164(b)(6); OBBBA §70601 ($40K SALT cap TY2025)",
+      "rationale": "SALT = 7000 state inc + 6000 property = 13000. item = 0 + 13000 + 15000 mort = 28000 > 15750 std, so itemize.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35",
+        "w2s": [{ "wages": "100000", "fed": "0" }],
+        "salt_amt": "7000", "prop_tax": "6000", "mort_int": "15000"
+      },
+      "expect": {
+        "d.itemized.salt": 13000,
+        "d.itemized.mortI": 15000,
+        "d.itemized.total": 28000,
+        "lines.L12": 28000,
+        "d.dedUsed": "Itemized"
+      }
+    },
+    {
+      "id": "item-salt-phaseout-full",
+      "name": "Single, $600K wages — SALT cap phased down to $10K floor",
+      "kind": "analytical",
+      "citation": "OBBBA §70601(b) (cap reduced 30¢ per $1 MAGI > $500K, not below $10K)",
+      "rationale": "MAGI $600K, excess $100K × 0.30 = $30K reduction. New cap = max(10000, 40000 - 30000) = 10000. Salt raw 60K capped to 10K. item = 10000 + 40000 = 50000.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "45",
+        "w2s": [{ "wages": "600000", "fed": "0" }],
+        "salt_amt": "30000", "prop_tax": "30000", "mort_int": "40000"
+      },
+      "expect": {
+        "d.itemized.salt": 10000,
+        "d.itemized.total": 50000,
+        "lines.L12": 50000
+      }
+    },
+    {
+      "id": "item-salt-phaseout-midway",
+      "name": "Single, $550K wages — SALT cap phased mid-way ($25K)",
+      "kind": "analytical",
+      "citation": "OBBBA §70601(b)",
+      "rationale": "Excess 50K × 0.30 = 15000. new cap = 40000 - 15000 = 25000. SALT raw 50K capped to 25K.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "45",
+        "w2s": [{ "wages": "550000", "fed": "0" }],
+        "salt_amt": "25000", "prop_tax": "25000", "mort_int": "30000"
+      },
+      "expect": {
+        "d.itemized.salt": 25000,
+        "d.itemized.total": 55000
+      }
+    },
+    {
+      "id": "item-medical-floor",
+      "name": "Medical deduction — 7.5% AGI floor",
+      "kind": "analytical",
+      "citation": "IRC §213(a) (7.5% AGI floor, PATH Act of 2015 made permanent)",
+      "rationale": "AGI 100000 × 0.075 = 7500 floor. Deductible = 20000 - 7500 = 12500.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "45",
+        "w2s": [{ "wages": "100000", "fed": "0" }],
+        "medical": "20000",
+        "ded_method": "Itemized"
+      },
+      "expect": {
+        "d.itemized.med": 12500,
+        "lines.L12": 12500
+      }
+    },
+    {
+      "id": "item-medical-below-floor",
+      "name": "Medical below 7.5% floor → zero deductible",
+      "kind": "analytical",
+      "citation": "IRC §213(a)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "45",
+        "w2s": [{ "wages": "100000", "fed": "0" }],
+        "medical": "5000",
+        "ded_method": "Itemized"
+      },
+      "expect": { "d.itemized.med": 0 }
+    },
+    {
+      "id": "item-compare-std-wins",
+      "name": "Compare mode: standard deduction beats small itemized total",
+      "kind": "analytical",
+      "citation": "IRC §63(e)",
+      "rationale": "item = 5000 charity + 3000 salt = 8000 < 15750 std. Default 'Compare' should pick std.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "w2s": [{ "wages": "60000", "fed": "0" }],
+        "charity": "5000", "salt_amt": "3000",
+        "ded_method": "Compare"
+      },
+      "expect": {
+        "d.dedUsed": "Standard",
+        "lines.L12": 15750
+      },
+      "notesInclude": ["Standard deduction"]
+    },
+    {
+      "id": "item-manual-override-forces-standard",
+      "name": "Manual 'Standard' overrides auto-comparison",
+      "kind": "analytical",
+      "citation": "IRC §63(e) (election)",
+      "rationale": "Even though itemized ($35K) > std ($15.75K), user set ded_method = 'Standard'.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "w2s": [{ "wages": "100000", "fed": "0" }],
+        "mort_int": "25000", "prop_tax": "10000",
+        "ded_method": "Standard"
+      },
+      "expect": {
+        "d.dedUsed": "Standard",
+        "lines.L12": 15750
+      }
+    },
+    {
+      "id": "item-itemize-saves-note",
+      "name": "Itemize-saves note is emitted when itemizing helps",
+      "kind": "analytical",
+      "citation": "UX — compliance requires the engine to surface its chosen method",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "w2s": [{ "wages": "100000", "fed": "0" }],
+        "mort_int": "25000", "prop_tax": "10000",
+        "ded_method": "Compare"
+      },
+      "expect": { "d.dedUsed": "Itemized" },
+      "notesInclude": ["Itemizing saves you"]
+    }
+  ]
+}

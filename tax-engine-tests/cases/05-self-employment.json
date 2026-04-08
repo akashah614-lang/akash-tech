@@ -1,0 +1,93 @@
+{
+  "category": "Self-Employment Tax & QBI",
+  "description": "Schedule SE mechanics (SS portion capped at $176,100 for TY2025, Medicare uncapped), the half-SE above-line deduction, the §199A Qualified Business Income deduction, and the SE-health-insurance deduction.",
+  "cases": [
+    {
+      "id": "se-basic-below-ss-base",
+      "name": "SE net $50K — basic Schedule SE math",
+      "kind": "analytical",
+      "citation": "IRC §1401; Sch SE TY2025 (SS cap $176,100)",
+      "rationale": "SE earnings = round(50000 × 0.9235) = 46175. SS portion: 46175 × 0.124 = 5725.70 → 5726. Medicare: 46175 × 0.029 = 1339.08 → 1339. SE tax = 7065. (Engine uses the equivalent flat 15.3% × 46175 = 7065 here because we're below the SS base.)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "se_gross": "50000", "se_exp": "0"
+      },
+      "expect": {
+        "d.seTax": 7065,
+        "lines.L10": 3533
+      }
+    },
+    {
+      "id": "se-above-ss-base",
+      "name": "SE net $300K — SS portion must cap at the wage base",
+      "kind": "known-bug",
+      "citation": "IRC §1402(b)(1); SSA 2025 contribution base $176,100",
+      "rationale": "SE earnings = 277050. SS portion capped: 176100 × 0.124 = 21836.40 → 21836. Medicare (uncapped): 277050 × 0.029 = 8034.45 → 8034. Correct SE tax = 29870. Engine applies flat 15.3% × 277050 = 42389 — an overcharge of $12,519.",
+      "hints": [
+        "engine.mjs: the SE tax block inside `compute1040`: `const se = Math.round(seN * TY.seFactor); const seT = Math.round(se * TY.seRate);`",
+        "the constant `TY.seRate = .153` combines 12.4% SS + 2.9% Medicare — only valid while `se` ≤ `TY.ssBase`",
+        "fix: `const ssPart = Math.round(Math.min(se, TY.ssBase) * 0.124); const medPart = Math.round(se * 0.029); const seT = ssPart + medPart;`"
+      ],
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "se_gross": "300000", "se_exp": "0"
+      },
+      "expect": {
+        "d.seTax": 29870,
+        "lines.L10": 14935
+      }
+    },
+    {
+      "id": "se-with-expenses",
+      "name": "SE gross $80K, expenses $20K — uses net for SE tax",
+      "kind": "analytical",
+      "citation": "IRC §1402(a)",
+      "rationale": "seN = 60000. se = 55410. seT = round(55410 × 0.153) = 8478. half-SE adj = 4239.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "se_gross": "80000", "se_exp": "20000"
+      },
+      "expect": {
+        "d.seTax": 8478,
+        "lines.L10": 4239
+      }
+    },
+    {
+      "id": "qbi-simple",
+      "name": "QBI 20% deduction on SE income",
+      "kind": "analytical",
+      "citation": "IRC §199A(a)",
+      "rationale": "seN = 50000. QBI = min(round(50000×0.20), round((L11 − L12)×0.20)). L10 = 3533 (half-SE). L11 = 46467. L12 = 15750. 20% × (46467 − 15750) = 6143 (rounds from 6143.4). Min(10000, 6143) = 6143.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "se_gross": "50000", "se_exp": "0",
+        "has_qbi": "Yes"
+      },
+      "expect": { "lines.L13": 6143 }
+    },
+    {
+      "id": "qbi-not-elected",
+      "name": "QBI off when has_qbi flag not 'Yes'",
+      "kind": "analytical",
+      "citation": "IRC §199A (elective calc; engine treats has_qbi flag as gate)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "se_gross": "50000", "se_exp": "0"
+      },
+      "expect": { "lines.L13": 0 }
+    },
+    {
+      "id": "se-health-deduction",
+      "name": "SE health insurance above-line deduction",
+      "kind": "analytical",
+      "citation": "IRC §162(l)",
+      "rationale": "adj = half-SE (3533) + SE health (5000) = 8533.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40",
+        "se_gross": "50000", "se_exp": "0",
+        "se_health": "5000"
+      },
+      "expect": { "lines.L10": 8533 }
+    }
+  ]
+}

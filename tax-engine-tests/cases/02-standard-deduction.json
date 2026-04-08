@@ -1,0 +1,69 @@
+{
+  "category": "Standard Deduction & Senior Bonus (OBBBA)",
+  "description": "Age-based additions to the standard deduction: the classic §63(f) over-65 addition and the new OBBBA §70103 $6,000 senior bonus with its MAGI phase-out.",
+  "cases": [
+    {
+      "id": "std-over65-single",
+      "name": "Single, age 67 — over-65 addition + senior bonus (full)",
+      "kind": "analytical",
+      "citation": "IRC §63(f)(1) ($2,000 Single TY2025); OBBBA §70103 ($6,000 bonus ≤ $75K MAGI)",
+      "rationale": "Base 15750 + 2000 (over-65) + 6000 (bonus, MAGI ≤ 75K) = 23750.",
+      "input": { "filing_status": "Single", "taxpayer_age": "67", "w2s": [{ "wages": "60000", "fed": "0" }] },
+      "expect": { "d.stdDed": 23750, "lines.L12": 23750 }
+    },
+    {
+      "id": "std-over65-single-mid-phaseout",
+      "name": "Single, age 67, $90K wages — senior bonus mid phase-out",
+      "kind": "analytical",
+      "citation": "OBBBA §70103(c) (phase-out linear over $30K window above $75K Single MAGI)",
+      "rationale": "Base 15750 + 2000 + round(6000 × (1 - (90000-75000)/30000)) = 15750 + 2000 + 3000 = 20750.",
+      "input": { "filing_status": "Single", "taxpayer_age": "67", "w2s": [{ "wages": "90000", "fed": "0" }] },
+      "expect": { "d.stdDed": 20750 }
+    },
+    {
+      "id": "std-over65-single-full-phaseout",
+      "name": "Single, age 67, $120K wages — senior bonus fully phased out",
+      "kind": "analytical",
+      "citation": "OBBBA §70103(c) (phase-out ends at MAGI $105K Single)",
+      "rationale": "Base 15750 + 2000 + 0 = 17750.",
+      "input": { "filing_status": "Single", "taxpayer_age": "67", "w2s": [{ "wages": "120000", "fed": "0" }] },
+      "expect": { "d.stdDed": 17750 }
+    },
+    {
+      "id": "std-over65-mfj-both-full",
+      "name": "MFJ, both 67, $100K wages — senior bonus ×2",
+      "kind": "known-bug",
+      "citation": "OBBBA §70103(a) ('each taxpayer who has attained age 65'); IRC §63(f)(1)(B)",
+      "rationale": "Base 31500 + 2×1600 (both over-65) + 2×6000 (both senior bonus, MAGI ≤ $150K) = 46700. Engine only adds the $6,000 bonus once regardless of how many spouses are 65+.",
+      "hints": [
+        "engine.mjs: look inside `compute1040` around the `if (age >= 65) { ... std += TY.seniorBonus; ... }` block",
+        "the senior-bonus branch should fire once for the taxpayer and once for the spouse when MFJ and both 65+",
+        "current code only checks `age` (taxpayer) and adds the bonus a single time"
+      ],
+      "input": { "filing_status": "Married Filing Jointly", "taxpayer_age": "67", "spouse_age": "67", "w2s": [{ "wages": "100000", "fed": "0" }] },
+      "expect": { "d.stdDed": 46700 }
+    },
+    {
+      "id": "std-over65-mfj-spouse-only",
+      "name": "MFJ, taxpayer 50 / spouse 68 — spouse qualifies for senior bonus",
+      "kind": "known-bug",
+      "citation": "OBBBA §70103(a) (per qualifying individual, not per return)",
+      "rationale": "Base 31500 + 1600 (spouse over-65) + 6000 (spouse senior bonus, MAGI ≤ $150K) = 39100. Engine gates the entire senior-bonus block on `age >= 65` (taxpayer), so spouse-only over-65 never triggers the bonus.",
+      "hints": [
+        "the guard `if (age >= 65) { ... std += TY.seniorBonus; ... }` should also fire when `spouse_age >= 65` on an MFJ return",
+        "consider extracting senior-bonus amount as `numSeniors * 6000` and running the phase-out on that"
+      ],
+      "input": { "filing_status": "Married Filing Jointly", "taxpayer_age": "50", "spouse_age": "68", "w2s": [{ "wages": "80000", "fed": "0" }] },
+      "expect": { "d.stdDed": 39100 }
+    },
+    {
+      "id": "std-over65-mfj-both-over65-addition-only",
+      "name": "MFJ, both 70, $200K wages — over-65 ×2, senior bonus fully phased out",
+      "kind": "analytical",
+      "citation": "IRC §63(f)(1)(B); OBBBA §70103(c) (phase-out ends at MAGI $180K MFJ)",
+      "rationale": "Base 31500 + 2×1600 = 34700. MAGI $200K > $180K, so bonus = 0.",
+      "input": { "filing_status": "Married Filing Jointly", "taxpayer_age": "70", "spouse_age": "70", "w2s": [{ "wages": "200000", "fed": "0" }] },
+      "expect": { "d.stdDed": 34700 }
+    }
+  ]
+}

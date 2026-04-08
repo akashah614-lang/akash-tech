@@ -1,0 +1,88 @@
+{
+  "category": "End-to-End Persona Snapshots",
+  "description": "Full-pipeline snapshot tests that lock the engine's behavior on canonical personas used in the product demo. A failure here does NOT necessarily mean the engine is wrong — it means something changed and a human has to look. Tax code is compliance-critical; silent drift is not acceptable.",
+  "cases": [
+    {
+      "id": "persona-thompson-demo",
+      "name": "Michael & Jennifer Thompson — MFJ, 1 kid, Delta W-2, Mr. Cooper mortgage",
+      "kind": "snapshot",
+      "citation": "Demo persona in the TaxGraph v4.1 pitch (P in engine-source.jsx); purchase-loan scenario (April 2024), state inc withholding fed into SALT",
+      "rationale": "Snapshot captured directly from engine run on 2026-04-08. Thompson's refund of $8,667 is the headline number on screen S5; if it moves, the product's demo breaks and we need to know why.",
+      "input": {
+        "filing_status": "Married Filing Jointly",
+        "taxpayer_age": "39", "spouse_age": "37",
+        "num_kids": "1", "has_deps": "Yes",
+        "interest_amt": "240",
+        "mort_int": "27481", "prop_tax": "8400", "charity": "0",
+        "salt_amt": "4275",
+        "ded_method": "Compare",
+        "w2s": [{ "wages": "95000", "fed": "12600", "ssw": "95000", "sst": "5890", "stw": "4275" }]
+      },
+      "expect": {
+        "lines.L1": 95000,
+        "lines.L2b": 240,
+        "lines.L9": 95240,
+        "lines.L10": 0,
+        "lines.L11": 95240,
+        "lines.L12": 40156,
+        "lines.L13": 0,
+        "lines.L15": 55084,
+        "lines.L16": 6133,
+        "lines.L21": 2200,
+        "lines.L22": 3933,
+        "lines.L23": 0,
+        "lines.L24": 3933,
+        "lines.L33": 12600,
+        "lines.L34": 8667,
+        "lines.L37": 0,
+        "lines.margRate": 0.12,
+        "d.dedUsed": "Itemized",
+        "d.stdDed": 31500,
+        "d.itemized.salt": 12675,
+        "d.itemized.mortI": 27481,
+        "d.itemized.total": 40156,
+        "d.ctc": 2200,
+        "d.ctcNonref": 2200,
+        "d.ctcRefund": 0
+      },
+      "notesInclude": ["Itemizing saves you $8,656", "over-withheld by ~$8,667"]
+    },
+    {
+      "id": "persona-thompson-with-jennifer-w2",
+      "name": "Thompson variant — Jennifer adds a W-2 via the follow-up flow",
+      "kind": "snapshot",
+      "citation": "Demo persona, S2 follow-up branch for spouseInc — Jennifer at ~$72K",
+      "rationale": "Verifies the spouse-income branch of the QA flow. Numbers come from running compute1040 with Jennifer's derived W-2 (fed ≈ 15%, state ≈ 4.5% CA). Snapshot will need to be re-locked if the follow-up form derivation changes.",
+      "input": {
+        "filing_status": "Married Filing Jointly",
+        "taxpayer_age": "39", "spouse_age": "37",
+        "num_kids": "1", "has_deps": "Yes",
+        "interest_amt": "240",
+        "mort_int": "27481", "prop_tax": "8400", "charity": "0",
+        "salt_amt": "7515",
+        "ded_method": "Compare",
+        "w2s": [
+          { "wages": "95000", "fed": "12600", "ssw": "95000", "sst": "5890", "stw": "4275" },
+          { "wages": "72000", "fed": "10800", "ssw": "72000", "sst": "4464", "stw": "3240" }
+        ]
+      },
+      "expect": {
+        "lines.L1": 167000,
+        "lines.L9": 167240,
+        "lines.L11": 167240,
+        "lines.L12": 43396,
+        "lines.L15": 123844,
+        "lines.L16": 17074,
+        "lines.L22": 14874,
+        "lines.L24": 14874,
+        "lines.L33": 23400,
+        "lines.L34": 8526,
+        "d.dedUsed": "Itemized",
+        "d.itemized.salt": 15915,
+        "d.itemized.mortI": 27481,
+        "d.itemized.total": 43396,
+        "d.ctc": 2200
+      }
+    }
+  ]
+}

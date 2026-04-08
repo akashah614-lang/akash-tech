@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TaxGraph — test harness</title>
+<style>
+  :root {
+    --bg:#0f1117; --surface:#171a23; --border:#262b38; --text:#e6e8ee;
+    --muted:#8b92a5; --accent:#5b8df0; --green:#35c084; --red:#ef6679; --yellow:#e3b341;
+    --mono: ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font:14px/1.5 system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:16px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  header h1 { font-size:15px; font-weight:600; letter-spacing:-0.01em; }
+  header .badge { font-family:var(--mono); font-size:11px; color:var(--muted); }
+  header select, header button {
+    background:var(--surface); color:var(--text); border:1px solid var(--border);
+    padding:6px 10px; border-radius:6px; font:inherit; cursor:pointer;
+  }
+  header button:hover, header select:hover { border-color:var(--accent); }
+  main { display:grid; grid-template-columns:minmax(360px,1fr) minmax(360px,1fr); gap:1px; background:var(--border); min-height:calc(100vh - 57px); }
+  .pane { background:var(--bg); padding:20px 24px; overflow:auto; }
+  .pane h2 { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:12px; }
+  .case-meta { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:16px; }
+  .case-meta .title { font-weight:600; margin-bottom:6px; }
+  .case-meta .kind { display:inline-block; font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:10px; letter-spacing:0.04em; text-transform:uppercase; }
+  .kind-analytical { background:rgba(91,141,240,0.15); color:var(--accent); }
+  .kind-known-bug { background:rgba(227,179,65,0.15); color:var(--yellow); }
+  .kind-snapshot { background:rgba(139,146,165,0.15); color:var(--muted); }
+  .case-meta .citation, .case-meta .rationale { font-size:12px; color:var(--muted); margin-top:6px; }
+  .case-meta .rationale { border-left:2px solid var(--border); padding-left:10px; font-style:italic; }
+  .field-grid { display:grid; grid-template-columns:140px 1fr; gap:8px 12px; align-items:center; margin-bottom:16px; }
+  .field-grid label { font-size:12px; color:var(--muted); text-align:right; font-family:var(--mono); }
+  .field-grid input, .field-grid select {
+    background:var(--surface); color:var(--text); border:1px solid var(--border);
+    padding:6px 8px; border-radius:5px; font:inherit; font-family:var(--mono); font-size:12px;
+  }
+  .field-grid input:focus, .field-grid select:focus { outline:1px solid var(--accent); border-color:var(--accent); }
+  .w2-row { border:1px solid var(--border); border-radius:6px; padding:10px; margin-bottom:8px; }
+  .w2-row .w2-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .w2-row label { font-size:10px; color:var(--muted); display:block; margin-bottom:2px; }
+  .w2-row input { width:100%; background:var(--surface); color:var(--text); border:1px solid var(--border); padding:4px 6px; border-radius:4px; font-family:var(--mono); font-size:11px; }
+  .w2-row button { font-size:10px; margin-top:6px; background:transparent; border:1px solid var(--border); color:var(--muted); padding:2px 8px; border-radius:4px; cursor:pointer; }
+  .section-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin:16px 0 6px; font-weight:600; }
+  button.add-w2 { background:transparent; border:1px dashed var(--border); color:var(--muted); padding:6px 10px; border-radius:4px; cursor:pointer; font:inherit; font-size:11px; width:100%; }
+  button.add-w2:hover { border-color:var(--accent); color:var(--accent); }
+  .result-table { font-family:var(--mono); font-size:12px; width:100%; border-collapse:collapse; }
+  .result-table td { padding:3px 6px; border-bottom:1px solid var(--border); }
+  .result-table td:first-child { color:var(--muted); width:45%; }
+  .result-table td:nth-child(2) { text-align:right; }
+  .result-table td:nth-child(3) { text-align:right; font-size:10px; color:var(--muted); width:70px; }
+  .result-table tr.pass td:nth-child(2) { color:var(--green); }
+  .result-table tr.fail td:nth-child(2) { color:var(--red); }
+  .result-table tr.fail td:nth-child(3) { color:var(--red); }
+  .result-table tr.section td { padding-top:10px; border:none; font-weight:600; color:var(--text); text-transform:uppercase; font-size:10px; letter-spacing:0.08em; }
+  .refund { font-size:28px; font-weight:700; font-family:var(--mono); margin:6px 0 18px; }
+  .refund.refund-pos { color:var(--green); }
+  .refund.refund-neg { color:var(--red); }
+  .notes { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:10px; font-size:11px; color:var(--muted); margin-top:12px; }
+  .notes .note { padding:4px 0; border-bottom:1px dashed var(--border); }
+  .notes .note:last-child { border-bottom:none; }
+  .summary-row { display:flex; gap:16px; margin-bottom:12px; }
+  .summary-row .stat { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px 12px; }
+  .summary-row .stat .label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+  .summary-row .stat .value { font-family:var(--mono); font-size:18px; font-weight:600; }
+  .summary-row .stat.green .value { color:var(--green); }
+  .summary-row .stat.red .value { color:var(--red); }
+  .summary-row .stat.yellow .value { color:var(--yellow); }
+  .hints { background:rgba(227,179,65,0.08); border:1px solid rgba(227,179,65,0.3); border-radius:6px; padding:10px; margin-top:12px; font-size:11px; color:var(--text); }
+  .hints .label { color:var(--yellow); font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px; }
+  .hints li { margin-left:18px; margin-top:3px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>TaxGraph v4.1</h1>
+  <span class="badge">harness · TY2025 + OBBBA</span>
+  <select id="caseSelect" title="Load a test case">
+    <option value="">— custom input —</option>
+  </select>
+  <button id="resetBtn" title="Reset to empty">reset</button>
+  <button id="runAllBtn" title="Run every case in the browser">run all cases</button>
+  <span id="runAllResult" class="badge"></span>
+</header>
+
+<main>
+  <section class="pane">
+    <h2>Input</h2>
+    <div id="caseMeta"></div>
+
+    <div class="section-label">Filing</div>
+    <div class="field-grid">
+      <label>filing_status</label>
+      <select data-key="filing_status">
+        <option>Single</option>
+        <option>Married Filing Jointly</option>
+        <option>Married Filing Separately</option>
+        <option>Head of Household</option>
+      </select>
+      <label>taxpayer_age</label><input data-key="taxpayer_age" type="text"/>
+      <label>spouse_age</label><input data-key="spouse_age" type="text"/>
+      <label>num_kids</label><input data-key="num_kids" type="text"/>
+      <label>num_other_deps</label><input data-key="num_other_deps" type="text"/>
+    </div>
+
+    <div class="section-label">W-2s</div>
+    <div id="w2Container"></div>
+    <button class="add-w2" id="addW2">+ add W-2</button>
+
+    <div class="section-label">Other income</div>
+    <div class="field-grid">
+      <label>interest_amt</label><input data-key="interest_amt"/>
+      <label>ordinary_divs</label><input data-key="ordinary_divs"/>
+      <label>qualified_divs</label><input data-key="qualified_divs"/>
+      <label>st_gains</label><input data-key="st_gains"/>
+      <label>lt_gains</label><input data-key="lt_gains"/>
+      <label>ira_dist</label><input data-key="ira_dist"/>
+      <label>pension_dist</label><input data-key="pension_dist"/>
+      <label>ss_amount</label><input data-key="ss_amount"/>
+      <label>unemp_amt</label><input data-key="unemp_amt"/>
+      <label>rental_gross</label><input data-key="rental_gross"/>
+      <label>rental_exp</label><input data-key="rental_exp"/>
+      <label>se_gross</label><input data-key="se_gross"/>
+      <label>se_exp</label><input data-key="se_exp"/>
+      <label>has_qbi</label>
+      <select data-key="has_qbi"><option></option><option>Yes</option><option>No</option></select>
+    </div>
+
+    <div class="section-label">Adjustments (above-line)</div>
+    <div class="field-grid">
+      <label>se_health</label><input data-key="se_health"/>
+      <label>hsa_amt</label><input data-key="hsa_amt"/>
+      <label>ira_ded</label><input data-key="ira_ded"/>
+      <label>sl_interest</label><input data-key="sl_interest"/>
+      <label>tips_amt</label><input data-key="tips_amt"/>
+      <label>ot_amt</label><input data-key="ot_amt"/>
+      <label>auto_int</label><input data-key="auto_int"/>
+    </div>
+
+    <div class="section-label">Deductions</div>
+    <div class="field-grid">
+      <label>ded_method</label>
+      <select data-key="ded_method"><option></option><option>Compare</option><option>Standard</option><option>Itemized</option></select>
+      <label>medical</label><input data-key="medical"/>
+      <label>salt_amt</label><input data-key="salt_amt"/>
+      <label>prop_tax</label><input data-key="prop_tax"/>
+      <label>mort_int</label><input data-key="mort_int"/>
+      <label>charity</label><input data-key="charity"/>
+      <label>childcare_amt</label><input data-key="childcare_amt"/>
+      <label>est_pay</label><input data-key="est_pay"/>
+    </div>
+  </section>
+
+  <section class="pane">
+    <h2>Engine output</h2>
+    <div id="headline"></div>
+    <table class="result-table" id="resultTable"></table>
+    <div id="notesBlock"></div>
+    <div id="hintsBlock"></div>
+  </section>
+</main>
+
+<script type="module">
+  import { compute1040 } from "./engine.mjs";
+
+  const MANIFEST = [
+    "cases/01-basics.json",
+    "cases/02-standard-deduction.json",
+    "cases/03-itemized.json",
+    "cases/04-credits.json",
+    "cases/05-self-employment.json",
+    "cases/06-social-security.json",
+    "cases/07-investments.json",
+    "cases/08-obbba-deductions.json",
+    "cases/09-additional-taxes.json",
+    "cases/10-persona-thompson.json",
+  ];
+
+  let allCases = [];
+  let currentCase = null;
+
+  const els = {
+    caseSelect:   document.getElementById("caseSelect"),
+    resetBtn:     document.getElementById("resetBtn"),
+    runAllBtn:    document.getElementById("runAllBtn"),
+    runAllResult: document.getElementById("runAllResult"),
+    caseMeta:     document.getElementById("caseMeta"),
+    w2Container:  document.getElementById("w2Container"),
+    addW2:        document.getElementById("addW2"),
+    headline:     document.getElementById("headline"),
+    resultTable:  document.getElementById("resultTable"),
+    notesBlock:   document.getElementById("notesBlock"),
+    hintsBlock:   document.getElementById("hintsBlock"),
+  };
+
+  async function loadCases() {
+    for (const path of MANIFEST) {
+      try {
+        const data = await (await fetch(path)).json();
+        for (const c of data.cases) {
+          allCases.push({ ...c, file: path, category: data.category });
+        }
+      } catch (e) {
+        console.warn(`could not load ${path}`, e);
+      }
+    }
+    for (const c of allCases) {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      const kindTag = c.kind === "known-bug" ? "⚠ " : c.kind === "snapshot" ? "📸 " : "";
+      opt.textContent = `${kindTag}${c.id} — ${c.name}`;
+      els.caseSelect.appendChild(opt);
+    }
+  }
+
+  function addW2(data={}) {
+    const div = document.createElement("div");
+    div.className = "w2-row";
+    div.innerHTML = `
+      <div class="w2-grid">
+        <div><label>wages</label><input data-w2="wages"/></div>
+        <div><label>fed</label><input data-w2="fed"/></div>
+        <div><label>ssw (ss wages)</label><input data-w2="ssw"/></div>
+        <div><label>sst (ss tax)</label><input data-w2="sst"/></div>
+        <div><label>stw (state tax)</label><input data-w2="stw"/></div>
+        <div><label>emp</label><input data-w2="emp"/></div>
+      </div>
+      <button type="button" class="remove">remove</button>
+    `;
+    els.w2Container.appendChild(div);
+    div.querySelectorAll("input").forEach(inp => {
+      inp.value = data[inp.dataset.w2] || "";
+      inp.addEventListener("input", run);
+    });
+    div.querySelector(".remove").addEventListener("click", () => { div.remove(); run(); });
+  }
+
+  function collect() {
+    const input = {};
+    document.querySelectorAll("[data-key]").forEach(el => {
+      const v = el.value.trim();
+      if (v !== "") input[el.dataset.key] = v;
+    });
+    const w2s = [];
+    document.querySelectorAll(".w2-row").forEach(row => {
+      const w = {};
+      row.querySelectorAll("[data-w2]").forEach(inp => {
+        const v = inp.value.trim();
+        if (v !== "") w[inp.dataset.w2] = v;
+      });
+      if (Object.keys(w).length > 0) w2s.push(w);
+    });
+    if (w2s.length) input.w2s = w2s;
+    return input;
+  }
+
+  function fmt(n) {
+    if (n == null) return "—";
+    if (typeof n === "number") {
+      if (!Number.isInteger(n)) return n.toFixed(4);
+      return (n < 0 ? "-$" : "$") + Math.abs(n).toLocaleString();
+    }
+    return String(n);
+  }
+
+  function getPath(obj, path) {
+    return path.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj);
+  }
+
+  function compare(expected, actual, tol = 1) {
+    if (expected == null) return actual == null;
+    if (typeof expected === "number" && typeof actual === "number") {
+      return Math.abs(actual - expected) <= tol;
+    }
+    return JSON.stringify(expected) === JSON.stringify(actual);
+  }
+
+  function renderCaseMeta(c) {
+    if (!c) { els.caseMeta.innerHTML = ""; return; }
+    const kindCls = `kind-${c.kind}`;
+    els.caseMeta.innerHTML = `
+      <div class="title">${c.name}</div>
+      <span class="kind ${kindCls}">${c.kind}</span>
+      <span class="badge" style="margin-left:8px">${c.id}</span>
+      ${c.citation ? `<div class="citation">${c.citation}</div>` : ""}
+      ${c.rationale ? `<div class="rationale">${c.rationale}</div>` : ""}
+    `;
+  }
+
+  function populateForm(input) {
+    document.querySelectorAll("[data-key]").forEach(el => { el.value = ""; });
+    els.w2Container.innerHTML = "";
+    for (const [k, v] of Object.entries(input)) {
+      if (k === "w2s") continue;
+      const el = document.querySelector(`[data-key="${k}"]`);
+      if (el) el.value = v;
+    }
+    const w2s = input.w2s || [];
+    if (w2s.length === 0) addW2();
+    else w2s.forEach(addW2);
+  }
+
+  function rowHtml(label, expected, actual, tol) {
+    const hasExpected = expected !== undefined;
+    const matches = hasExpected ? compare(expected, actual, tol) : null;
+    const cls = matches === null ? "" : matches ? "pass" : "fail";
+    const diff = hasExpected && typeof expected === "number" && typeof actual === "number" && expected !== actual
+      ? (actual - expected > 0 ? "+" : "") + (actual - expected)
+      : "";
+    return `<tr class="${cls}"><td>${label}${hasExpected ? ` <span style="opacity:0.4">(exp ${fmt(expected)})</span>` : ""}</td><td>${fmt(actual)}</td><td>${diff}</td></tr>`;
+  }
+
+  function sectionRow(label) {
+    return `<tr class="section"><td colspan="3">${label}</td></tr>`;
+  }
+
+  function run() {
+    const input = collect();
+    const r = compute1040(input);
+    const exp = currentCase?.expect || {};
+
+    const refund = r.lines.L34 > 0 ? r.lines.L34 : -r.lines.L37;
+    const refundCls = refund > 0 ? "refund-pos" : refund < 0 ? "refund-neg" : "";
+    els.headline.innerHTML = `
+      <div class="refund ${refundCls}">${refund > 0 ? "+" : ""}${fmt(refund)}</div>
+    `;
+
+    const lines = [
+      ["section","Income"],
+      ["lines.L1","L1 wages"],
+      ["lines.L2b","L2b interest"],
+      ["lines.L3b","L3b divs"],
+      ["lines.L4b","L4b IRA dist"],
+      ["lines.L5b","L5b pension"],
+      ["lines.L6b","L6b taxable SS"],
+      ["lines.L7","L7 cap gains"],
+      ["lines.L8","L8 other"],
+      ["lines.L9","L9 total income"],
+      ["section","Adjustments"],
+      ["lines.L10","L10 adjustments"],
+      ["lines.L11","L11 AGI"],
+      ["section","Deductions & taxable income"],
+      ["d.stdDed","std ded"],
+      ["d.dedUsed","method"],
+      ["d.itemized.total","itemized total"],
+      ["lines.L12","L12 deduction"],
+      ["lines.L13","L13 QBI"],
+      ["lines.L15","L15 taxable income"],
+      ["section","Tax"],
+      ["d.ordTax","ordinary tax"],
+      ["d.prefTax","LTCG/QDiv tax"],
+      ["lines.L16","L16 tax"],
+      ["section","Credits"],
+      ["d.ctc","CTC"],
+      ["d.ctcNonref","CTC nonref"],
+      ["d.ctcRefund","ACTC refundable"],
+      ["d.odc","ODC"],
+      ["d.ccCr","child care cr"],
+      ["lines.L21","L21 credits"],
+      ["lines.L22","L22 tax after cr"],
+      ["section","Additional taxes & payments"],
+      ["d.seTax","SE tax"],
+      ["d.addlMed","addl Medicare"],
+      ["d.niit","NIIT"],
+      ["lines.L23","L23 addl taxes"],
+      ["lines.L24","L24 total tax"],
+      ["d.exSS","excess SS"],
+      ["lines.L33","L33 payments"],
+      ["lines.L34","L34 refund"],
+      ["lines.L37","L37 owed"],
+      ["lines.effRate","effective rate"],
+      ["lines.margRate","marginal rate"],
+    ];
+
+    const rows = lines.map(([path,label]) => {
+      if (path === "section") return sectionRow(label);
+      return rowHtml(label, exp[path], getPath(r, path));
+    });
+    els.resultTable.innerHTML = rows.join("");
+
+    els.notesBlock.innerHTML = (r.notes && r.notes.length)
+      ? `<div class="notes">${r.notes.map(n => `<div class="note">${n}</div>`).join("")}</div>`
+      : "";
+
+    els.hintsBlock.innerHTML = (currentCase?.hints?.length)
+      ? `<div class="hints"><div class="label">Engine hints</div><ul>${currentCase.hints.map(h => `<li>${h}</li>`).join("")}</ul></div>`
+      : "";
+  }
+
+  function loadCase(id) {
+    const c = allCases.find(x => x.id === id);
+    currentCase = c || null;
+    renderCaseMeta(c);
+    if (c) populateForm(c.input);
+    run();
+  }
+
+  function runAll() {
+    let passed = 0, failed = 0, knownBug = 0, drift = 0;
+    for (const c of allCases) {
+      const r = compute1040(c.input);
+      let mismatches = 0;
+      for (const [path, expected] of Object.entries(c.expect || {})) {
+        if (!compare(expected, getPath(r, path), c.tolerance ?? 1)) mismatches++;
+      }
+      for (const sub of c.notesInclude || []) {
+        if (!(r.notes || []).some(n => n.includes(sub))) mismatches++;
+      }
+      for (const sub of c.notesExclude || []) {
+        if ((r.notes || []).some(n => n.includes(sub))) mismatches++;
+      }
+      if (mismatches === 0) {
+        if (c.kind === "known-bug") knownBug++;
+        else passed++;
+      } else {
+        if (c.kind === "known-bug") knownBug++;
+        else if (c.kind === "snapshot") drift++;
+        else failed++;
+      }
+    }
+    els.runAllResult.textContent =
+      `${passed} pass · ${failed} fail · ${knownBug} known-bug · ${drift} drift`;
+    els.runAllResult.style.color =
+      failed > 0 ? "var(--red)" : drift > 0 ? "var(--yellow)" : "var(--green)";
+  }
+
+  document.querySelectorAll("[data-key]").forEach(el => el.addEventListener("input", run));
+  els.caseSelect.addEventListener("change", e => loadCase(e.target.value));
+  els.resetBtn.addEventListener("click", () => { currentCase = null; renderCaseMeta(null); populateForm({}); run(); });
+  els.addW2.addEventListener("click", () => { addW2(); run(); });
+  els.runAllBtn.addEventListener("click", runAll);
+
+  // init
+  addW2();
+  loadCases().then(() => {
+    // auto-load Thompson persona on first boot
+    const def = allCases.find(c => c.id === "persona-thompson-demo");
+    if (def) {
+      els.caseSelect.value = def.id;
+      loadCase(def.id);
+    } else {
+      run();
+    }
+  });
+</script>
+</body>
+</html>

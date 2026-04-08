@@ -1,0 +1,116 @@
+{
+  "category": "OBBBA Above-the-Line Deductions",
+  "description": "New Schedule 1 deductions created by OBBBA §70401: qualifying tips, qualified overtime, and passenger-vehicle loan interest. Focus is on caps, phase-outs, and filing-status splits.",
+  "cases": [
+    {
+      "id": "tips-under-cap",
+      "name": "Tips deduction — income below cap",
+      "kind": "analytical",
+      "citation": "OBBBA §70401(a); IRC §224 (new) ($25K single cap)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "30",
+        "w2s": [{ "wages": "50000", "fed": "0" }],
+        "tips_amt": "8000"
+      },
+      "expect": { "lines.L10": 8000 }
+    },
+    {
+      "id": "tips-exceeds-cap-single",
+      "name": "Tips deduction capped at $25K for Single",
+      "kind": "analytical",
+      "citation": "OBBBA §70401(a)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "30",
+        "w2s": [{ "wages": "80000", "fed": "0" }],
+        "tips_amt": "30000"
+      },
+      "expect": { "lines.L10": 25000 }
+    },
+    {
+      "id": "tips-mfs-half-cap",
+      "name": "Tips deduction capped at $12.5K for MFS",
+      "kind": "analytical",
+      "citation": "OBBBA §70401(a) (MFS half-cap)",
+      "input": {
+        "filing_status": "Married Filing Separately", "taxpayer_age": "35",
+        "w2s": [{ "wages": "60000", "fed": "0" }],
+        "tips_amt": "20000"
+      },
+      "expect": { "lines.L10": 12500 }
+    },
+    {
+      "id": "overtime-under-cap",
+      "name": "Overtime deduction below cap",
+      "kind": "analytical",
+      "citation": "OBBBA §70401(b); IRC §225 (new)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "30",
+        "w2s": [{ "wages": "60000", "fed": "0" }],
+        "ot_amt": "5000"
+      },
+      "expect": { "lines.L10": 5000 }
+    },
+    {
+      "id": "overtime-cap-mfj",
+      "name": "Overtime deduction capped at $25K for MFJ",
+      "kind": "analytical",
+      "citation": "OBBBA §70401(b)",
+      "input": {
+        "filing_status": "Married Filing Jointly", "taxpayer_age": "35", "spouse_age": "35",
+        "w2s": [{ "wages": "150000", "fed": "0" }],
+        "ot_amt": "35000"
+      },
+      "expect": { "lines.L10": 25000 }
+    },
+    {
+      "id": "auto-int-no-phaseout",
+      "name": "Auto loan interest — full deduction below phase-out",
+      "kind": "analytical",
+      "citation": "OBBBA §70401(c); IRC §226 (new) ($10K cap, $100K Single phase-out)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35",
+        "w2s": [{ "wages": "80000", "fed": "0" }],
+        "auto_int": "6000"
+      },
+      "expect": { "lines.L10": 6000 }
+    },
+    {
+      "id": "auto-int-half-phaseout",
+      "name": "Auto loan interest mid phase-out",
+      "kind": "analytical",
+      "citation": "OBBBA §70401(c) (linear phase-out $100K→$150K Single)",
+      "rationale": "L9 = 125000. autD starts at min(8000, 10000) = 8000. Phased: round(8000 × (1 − (125000−100000)/50000)) = round(8000 × 0.5) = 4000.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35",
+        "w2s": [{ "wages": "125000", "fed": "0" }],
+        "auto_int": "8000"
+      },
+      "expect": { "lines.L10": 4000 }
+    },
+    {
+      "id": "auto-int-full-phaseout",
+      "name": "Auto loan interest fully phased out",
+      "kind": "analytical",
+      "citation": "OBBBA §70401(c)",
+      "rationale": "L9 = 160000, above $150K end of phase-out window. autD = max(0, round(8000 × (1 − 60000/50000))) = max(0, round(-1600)) = 0.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35",
+        "w2s": [{ "wages": "160000", "fed": "0" }],
+        "auto_int": "8000"
+      },
+      "expect": { "lines.L10": 0 }
+    },
+    {
+      "id": "auto-int-cap",
+      "name": "Auto loan interest capped at $10K before phase-out",
+      "kind": "analytical",
+      "citation": "OBBBA §70401(c)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35",
+        "w2s": [{ "wages": "80000", "fed": "0" }],
+        "auto_int": "15000"
+      },
+      "expect": { "lines.L10": 10000 }
+    }
+  ]
+}

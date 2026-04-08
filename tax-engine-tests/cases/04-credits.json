@@ -1,0 +1,131 @@
+{
+  "category": "Credits (CTC, ODC, Child & Dependent Care)",
+  "description": "Child Tax Credit including OBBBA §70201 $2,200 amount and $1,700 refundable portion, its $50-per-$1K phase-out, Credit for Other Dependents, and the §21 Child & Dependent Care Credit rate table.",
+  "cases": [
+    {
+      "id": "ctc-basic-single-1-kid",
+      "name": "Single, 1 kid, income well below phase-out",
+      "kind": "analytical",
+      "citation": "IRC §24; OBBBA §70201 ($2,200 CTC TY2025)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "35", "num_kids": "1",
+        "w2s": [{ "wages": "60000", "fed": "0" }]
+      },
+      "expect": { "d.ctc": 2200, "d.ctcNonref": 2200, "d.ctcRefund": 0 }
+    },
+    {
+      "id": "ctc-mfj-3-kids",
+      "name": "MFJ, 3 kids, full CTC",
+      "kind": "analytical",
+      "citation": "IRC §24; OBBBA §70201",
+      "input": {
+        "filing_status": "Married Filing Jointly", "taxpayer_age": "40", "spouse_age": "38", "num_kids": "3",
+        "w2s": [{ "wages": "120000", "fed": "0" }]
+      },
+      "expect": { "d.ctc": 6600 }
+    },
+    {
+      "id": "ctc-phase-out-partial",
+      "name": "Single, 2 kids, AGI $220K — partial phase-out",
+      "kind": "analytical",
+      "citation": "IRC §24(b) ($50 per $1K over $200K Single MAGI)",
+      "rationale": "CTC = 2×2200 = 4400. Phase = ceil((220000-200000)/1000) × 50 = 20 × 50 = 1000. ctc = 3400.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40", "num_kids": "2",
+        "w2s": [{ "wages": "220000", "fed": "0" }]
+      },
+      "expect": { "d.ctc": 3400 }
+    },
+    {
+      "id": "ctc-phase-out-fully",
+      "name": "MFJ, 2 kids, AGI $500K — fully phased out",
+      "kind": "analytical",
+      "citation": "IRC §24(b)",
+      "input": {
+        "filing_status": "Married Filing Jointly", "taxpayer_age": "50", "spouse_age": "48", "num_kids": "2",
+        "w2s": [{ "wages": "500000", "fed": "0" }]
+      },
+      "expect": { "d.ctc": 0 }
+    },
+    {
+      "id": "actc-no-earned-income",
+      "name": "ACTC refundable portion — zero earned income",
+      "kind": "known-bug",
+      "citation": "IRC §24(d)(1)(B)(i) (refundable portion = 15% × (earned income − $2,500))",
+      "rationale": "Wages $0 → earned income $0 → ACTC formula = 15% × max(0, 0 − 2500) = 0. Engine ignores the earned-income limit and refunds the full $1,700 cap.",
+      "hints": [
+        "engine.mjs: CTC refundable block, `r.d.ctcRefund = Math.min(TY.ctcRefund * nK, ctc - nonref)` — missing the 15% × (earned − 2500) limit",
+        "`earned income` for ACTC = wages + SE net earnings (simplified)",
+        "Fix: add a third term to the min: Math.max(0, Math.floor(0.15 * Math.max(0, earned - 2500)))"
+      ],
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "30", "num_kids": "1",
+        "w2s": [{ "wages": "0", "fed": "0" }]
+      },
+      "expect": { "d.ctcRefund": 0, "lines.L34": 0 }
+    },
+    {
+      "id": "actc-earned-income-limits",
+      "name": "ACTC refundable portion — earned income only $3K, 1 kid",
+      "kind": "known-bug",
+      "citation": "IRC §24(d)(1)(B)(i)",
+      "rationale": "15% × (3000 − 2500) = 75. Engine returns full $1,700 because the earned-income limit is not applied.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "30", "num_kids": "1",
+        "w2s": [{ "wages": "3000", "fed": "0" }]
+      },
+      "expect": { "d.ctcRefund": 75, "lines.L34": 75 }
+    },
+    {
+      "id": "odc-basic",
+      "name": "Credit for Other Dependents — $500/qualifying",
+      "kind": "analytical",
+      "citation": "IRC §24(h)(4)",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "45",
+        "w2s": [{ "wages": "60000", "fed": "0" }],
+        "num_other_deps": "1"
+      },
+      "expect": { "d.odc": 500 }
+    },
+    {
+      "id": "cdcc-rate-full-35pct",
+      "name": "Child & Dependent Care Credit — 35% rate at AGI $15K",
+      "kind": "analytical",
+      "citation": "IRC §21(a)(2)",
+      "rationale": "AGI $15K → rate = 35%. 1 kid → $3K cap. Credit = 3000 × 0.35 = 1050.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "30", "num_kids": "1",
+        "w2s": [{ "wages": "15000", "fed": "0" }],
+        "childcare_amt": "5000"
+      },
+      "expect": { "d.ccCr": 1050 }
+    },
+    {
+      "id": "cdcc-rate-20pct-floor",
+      "name": "Child & Dependent Care Credit — 20% rate floor at high AGI",
+      "kind": "analytical",
+      "citation": "IRC §21(a)(2) (20% floor for AGI > $43K)",
+      "rationale": "AGI $50K → rate floored at 20%. 2 kids → $6K cap. Credit = 6000 × 0.20 = 1200.",
+      "input": {
+        "filing_status": "Single", "taxpayer_age": "40", "num_kids": "2",
+        "w2s": [{ "wages": "50000", "fed": "0" }],
+        "childcare_amt": "8000"
+      },
+      "expect": { "d.ccCr": 1200 }
+    },
+    {
+      "id": "cdcc-two-qualifying-persons",
+      "name": "Child & Dependent Care — 2 kids, $6K expense cap",
+      "kind": "analytical",
+      "citation": "IRC §21(c)(2) ($6K cap for ≥2 qualifying individuals)",
+      "rationale": "AGI $100K → rate floor 20%. min(7000, 6000) × 0.20 = 1200.",
+      "input": {
+        "filing_status": "Married Filing Jointly", "taxpayer_age": "38", "spouse_age": "36", "num_kids": "2",
+        "w2s": [{ "wages": "100000", "fed": "0" }],
+        "childcare_amt": "7000"
+      },
+      "expect": { "d.ccCr": 1200 }
+    }
+  ]
+}
