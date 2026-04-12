@@ -24,7 +24,7 @@
 import { readFileSync, readdirSync } from "fs";
 import { join, dirname }              from "path";
 import { fileURLToPath }               from "url";
-import { compute1040 }                 from "./engine.mjs";
+import { compute1040 }                 from "../engine.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CASES_DIR = join(__dirname, "cases");
